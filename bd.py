@@ -1,3 +1,12 @@
-#Super mega thoughtful data base
+# Super mega thoughtful data base
 
-uers = {'supersvyat3000': '1234', 'dron94': '4321'} #Just dict with user's logins and passwords
+users = {'C0deMaver1ck': 'CorrectHorseBatteryStaple', 'dron94': '1234'} #Just dict with user's logins and passwords
+
+
+#not used
+response_list = [
+    {
+    "response": 200,
+    "alert": "Необязательное сообщение/уведомление"
+    }
+    ]

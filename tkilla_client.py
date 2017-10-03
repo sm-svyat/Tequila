@@ -1,25 +1,33 @@
 import socket
 import json
+import time
 
 def connection(json_object):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(('localhost', 8888))
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(('localhost', 8888))
+    sock.send(json_object.encode('utf-8'))
 
 
-msg = s.recv(1024)
-s.close()
+    data = sock.recv(1024)
+    sock.close()
+    return data
 
-presens = {
-    "action": "presence",
+authenticate_request = {
+    "action": "authenticate",
     "time": "<unix timestamp>",
-    "type": "status",
     "user": {
     "account_name": "C0deMaver1ck",
-    "status": "Yep, I am here!"
+    "password": "CorrectHorseBatteryStaple"
     }
     }
 
+authenticate_request['time'] = time.ctime()
+request = json.dumps(authenticate_request)
+data = connection(request)
 
 
-j = json.loads(msg.decode('utf-8'))
-print(j['response'])
+json_data = json.loads(data.decode('utf-8'))
+print(json_data['response'])
+if json_data['response'] // 100 == 4:
+    print(json_data['error'])
