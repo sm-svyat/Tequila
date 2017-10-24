@@ -2,18 +2,65 @@ import sys
 import socket
 import json
 import time
-from jimprotocols import JimMessage
+from jimprotocols import JimMessage, JimAuthenticate
 
-#def connection(json_object):
+def authenticate(login, password):
+    '''
+    Функция аутентификации
+    :param login:
+    :param password:
+    :return:
+    '''
 
-#    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#    sock.connect(('localhost', 8888))
-#    sock.send(json_object.encode('utf-8'))
+    msg = JimAuthenticate(login, password)
+    request = msg.jsonmsg()
 
+    #authenticate_request = {
+    #                "action": "authenticate",
+    #                "time": "<unix timestamp>",
+    #                "user": {
+    #                    "account_name": "C0deMaver1ck",
+    #                    "password": "CorrectHorseBatteryStaple"
+    #                }
+    #            }
 
-#    data = sock.recv(1024)
-#    sock.close()
-#    return data
+    #authenticate_request['time'] = time.ctime()
+    #request = json.dumps(authenticate_request)
+
+    data = connection(request)
+
+    json_data = json.loads(data.decode('utf-8'))
+    #print(json_data['response'])
+    if json_data['response'] // 100 == 4:
+        print(json_data['error'])
+    return json_data
+
+def check_tokin(tokin):
+
+    check_tokin_request = {
+                    "action": "presence",
+                    "time": "<unix timestamp>",
+                    "tokin": tokin
+                }
+    check_tokin_request['time'] = time.ctime()
+    request = json.dumps(check_tokin_request)
+    data = connection(request.encode('utf-8'))
+    return(json.loads(data.decode('utf-8')))
+
+def connection(json_object, host='localhost', port=8888):
+    '''
+    Функция соединения с сервером
+    :param json_object:
+    :return:
+    '''
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((host, port))
+    #sock.send(json_object.encode('utf-8'))
+    sock.send(json_object)
+
+    data = sock.recv(1024)
+    sock.close()
+    return data
 
 class Conversation:
     def __init__(self, host='localhost', port=8888):
@@ -40,24 +87,6 @@ class Conversation:
 
 
 if __name__ == "__main__":
-
-#            authenticate_request = {
-#            "action": "authenticate",
-#            "time": "<unix timestamp>",
-#            "user": {
-#                "account_name": "C0deMaver1ck",
-#                "password": "CorrectHorseBatteryStaple"
-#            }
-#        }
-
-#        authenticate_request['time'] = time.ctime()
-#        request = json.dumps(authenticate_request)
-#        data = connection(request)
-
-#        json_data = json.loads(data.decode('utf-8'))
-#        print(json_data['response'])
-#        if json_data['response'] // 100 == 4:
-#            print(json_data['error'])
 
     try:
         mode = sys.argv[1]
@@ -87,7 +116,6 @@ if __name__ == "__main__":
         while True:
             my_chat.readmsg()
             msg = my_chat.chat[-1]
-            #print('Здесь сообщение ', msg)
             print('{} \n{:>80} \n{:>80}\n'.format(msg['message'], msg['from'], msg['time']))
 
     else:

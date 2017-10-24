@@ -1,7 +1,7 @@
 import socket
 import json
 from bd import response_list, users
-from jimprotocols import Client
+from bd import User
 
 
 class MainServer:
@@ -16,6 +16,10 @@ class MainServer:
         self.sock = str()
         self.clients = list()
         self.chat = Chat()
+        self.user = User
+        self.tokin_dict = dict()
+        self.users_list = list()
+        self.accounts_dict = dict()
 
     def connect(self):
 
@@ -37,9 +41,14 @@ class MainServer:
             except IndentationError:
                 print('Error 400. Wrong JSON-object.')
                 self.run()
+            except json.decoder.JSONDecodeError:
+                print('Error 400. Wrong JSON-object. 2')
+                self.run()
 
     def respons_generator(self):
-        if self.json_data['action'] == "authenticate":
+        if 'tokin' in self.json_data.keys():
+            self.presence()
+        elif self.json_data['action'] == "authenticate":
             self.authenticate()
         elif self.json_data['action'] == "msg":
             self.conversation()
@@ -58,10 +67,27 @@ class MainServer:
         if self.json_data['user']['account_name'] in users.keys():
             if self.json_data['user']['password'] == users[self.json_data['user']['account_name']]:
                 print("Пользователь с ником %s прошел аунтентификацию %s" % (self.json_data['user']['account_name'], self.json_data['time']) )
-                respons = {
-                    "response": 200,
-                    "alert": "Authentication is successful"
-                }
+                #self.user = User(self.json_data['user']['account_name'], self.json_data['user']['password'])
+                if self.json_data['user']['account_name'] in [user.login for user in self.users_list]:
+                    respons = {
+                        "response": 200,
+                        "alert": "Authentication is successful",
+                        "tokin": self.accounts_dict[self.json_data['user']['account_name']].tokin
+                    }
+                    #self.user.tokin
+                else:
+                    self.user = User(self.json_data['user']['account_name'], self.json_data['user']['password'])
+                #Создание токина
+                    self.user.create_tokin()
+                    self.users_list.append(self.user)
+                    self.accounts_dict[self.json_data['user']['account_name']] = self.user
+                    self.tokin_dict[self.user.tokin] = self.user
+                    respons = {
+                        "response": 200,
+                        "alert": "Authentication is successful",
+                        "tokin": self.user.tokin
+                    }
+                print(self.users_list)
                 self.string = json.dumps(respons)
                 self.client.send(self.string.encode('utf-8'))
                 self.client.close()
@@ -110,6 +136,28 @@ class MainServer:
         #self.chat.read_requests()  # Получаем входные сообщения
         print(self.chat.chat_history)
         self.chat.write_requests() # Выполним отправку входящих сообщений
+
+    def presence(self):
+        if self.json_data['tokin'] in self.tokin_dict.keys():
+            print('Вот все мои ттокины\n', self.tokin_dict.keys())
+            u = self.tokin_dict[self.json_data['tokin']]
+            respons = {
+                "response": 400,
+                "alert": u.login,
+                "tokin": u.tokin
+            }
+            self.string = json.dumps(respons)
+            self.client.send(self.string.encode('utf-8'))
+            self.client.close()
+        else:
+            print('Неверный токин клиента.')
+            respons = {
+                "response": 403,
+                "alert": "Неверный токин. Пройди аунтентификацию.",
+            }
+            self.string = json.dumps(respons)
+            self.client.send(self.string.encode('utf-8'))
+            self.client.close()
 
 class Chat:
     def __init__(self):

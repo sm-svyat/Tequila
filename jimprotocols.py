@@ -19,7 +19,7 @@ class JimMessage:
         '''
         self.response = {
         "action": "msg",
-        "time": str(time.ctime()),
+        "time": time.ctime(),
         "to": str(self.addressee),
         "from": str(self.sender),
         "message": self.message
@@ -34,8 +34,8 @@ class JimMessage:
 
 class JimResponse:
     '''
-    Класс, который реализует создание сообщению по JIM протоколу.
-    Получает на тип ответа, и сообщение.
+    Класс, который реализует создание сообщения по JIM протоколу.
+    Получает на вход тип ответа и сообщение.
     '''
     def __init__(self, response_type, alert = None):
         self.resp_type = response_type
@@ -58,24 +58,35 @@ class JimResponse:
         self.msgcompose()
         return json.dumps(self.response).encode('utf-8')
 
-class Client:
-    def __init__(self, client, addr):
-        self.client = client
-        self.addr = addr
-        self.username = str()
-        self.client_message = str()
+class JimAuthenticate:
+    '''
+    Класс, который реализует создание сообщения для входа в систему по JIM протоколу.
+    Получает на вход login и password.
+    '''
+    def __init__(self, login, password):
+        self.login = login
+        self.password = password
+        self.response = dict()
 
-    def __str__(self):
-        return self.username
+    def msgcompose(self):
+        '''
+        Функция, которая составляет JSON сообщение
+        '''
+        self.response = {
+            "action": "authenticate",
+            "time": time.ctime(),
+            "user": {
+                "account_name": self.login,
+                "password": self.password
+            }
+        }
 
-    def __repr__(self):
-        return self.addr
-
-    def getmsg(self):
-        return self.client_message
-
-
-
+    def jsonmsg(self):
+        '''
+        Функция, которая возвращает json объект закодированый в utf-8
+        '''
+        self.msgcompose()
+        return json.dumps(self.response).encode('utf-8')
 
 if __name__ == '__main__':
 
