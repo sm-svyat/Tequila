@@ -102,13 +102,19 @@ if __name__ == "__main__":
     if mode == 'w':
         json_msg_teg = json.dumps({'action': 'msg', 'mode': 'w'}).encode('utf-8')
         my_chat.writemsg(json_msg_teg)
+        #try:
+        login = sys.argv[2]
+        addressee = sys.argv[3]
+        #except:
+        #    print('Ощибка передачи аргумента')
+
         while True:
             msg = input(':) >')
             my_chat.connection()
-            msg = JimMessage('Me', 'You', msg)
+            msg = JimMessage(login, addressee, msg)
+            #msg = JimMessage('Me', 'You', msg)
             data = msg.jsonmsg()
             my_chat.writemsg(data)
-
 
     elif mode == 'r':
         json_msg_teg = json.dumps({'action': 'msg', 'mode': 'r'}).encode('utf-8')

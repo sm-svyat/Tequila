@@ -1,8 +1,8 @@
 import socket
 import json
-from bd import response_list, users
-from bd import User
-
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from bd import User, users
 
 class MainServer:
     def __init__(self, ip, port):
@@ -64,8 +64,11 @@ class MainServer:
             self.client.close()
 
     def authenticate(self):
-        if self.json_data['user']['account_name'] in users.keys():
-            if self.json_data['user']['password'] == users[self.json_data['user']['account_name']]:
+        #if self.json_data['user']['account_name'] in users.keys():
+        if session.query(User).filter_by(login = self.json_data['user']['account_name']).first():
+            bd_user = session.query(User).filter_by(login = self.json_data['user']['account_name']).first()
+            #if self.json_data['user']['password'] == users[self.json_data['user']['account_name']]:
+            if self.json_data['user']['password'] == bd_user.password:
                 print("Пользователь с ником %s прошел аунтентификацию %s" % (self.json_data['user']['account_name'], self.json_data['time']) )
                 #self.user = User(self.json_data['user']['account_name'], self.json_data['user']['password'])
                 if self.json_data['user']['account_name'] in [user.login for user in self.users_list]:
@@ -74,18 +77,22 @@ class MainServer:
                         "alert": "Authentication is successful",
                         "tokin": self.accounts_dict[self.json_data['user']['account_name']].tokin
                     }
-                    #self.user.tokin
                 else:
-                    self.user = User(self.json_data['user']['account_name'], self.json_data['user']['password'])
+                    #self.user = User(self.json_data['user']['account_name'], self.json_data['user']['password'])
                 #Создание токина
-                    self.user.create_tokin()
-                    self.users_list.append(self.user)
-                    self.accounts_dict[self.json_data['user']['account_name']] = self.user
-                    self.tokin_dict[self.user.tokin] = self.user
+                    #self.user.create_tokin()
+                    bd_user.create_tokin()
+                    session.commit()
+                    #self.users_list.append(self.user)
+                    self.users_list.append(bd_user)
+                    #self.accounts_dict[self.json_data['user']['account_name']] = self.user
+                    self.accounts_dict[self.json_data['user']['account_name']] = bd_user
+                    #self.tokin_dict[self.user.tokin] = self.user
+                    self.tokin_dict[self.user.tokin] = bd_user
                     respons = {
                         "response": 200,
                         "alert": "Authentication is successful",
-                        "tokin": self.user.tokin
+                        "tokin": bd_user.tokin
                     }
                 print(self.users_list)
                 self.string = json.dumps(respons)
@@ -138,9 +145,11 @@ class MainServer:
         self.chat.write_requests() # Выполним отправку входящих сообщений
 
     def presence(self):
-        if self.json_data['tokin'] in self.tokin_dict.keys():
-            print('Вот все мои ттокины\n', self.tokin_dict.keys())
-            u = self.tokin_dict[self.json_data['tokin']]
+        #if self.json_data['tokin'] in self.tokin_dict.keys():
+        if session.query(User).filter_by(tokin = self.json_data['tokin']).first():
+            u = session.query(User).filter_by(tokin = self.json_data['tokin']).first()
+            #print('Вот все мои токины\n', self.tokin_dict.keys())
+            #u = self.tokin_dict[self.json_data['tokin']]
             respons = {
                 "response": 400,
                 "alert": u.login,
@@ -206,6 +215,12 @@ class Chat:
                     # Реализовать отключение клиента
 
 if __name__ == '__main__':
+
+    engine = create_engine('sqlite:///tkilla_database.db', echo=False)
+    pool_recycle = 7200  # переустановление соединения с бд через каждые 2 часа
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
     server = MainServer('', 8888)
     server.connect()
