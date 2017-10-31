@@ -88,6 +88,36 @@ class JimAuthenticate:
         self.msgcompose()
         return json.dumps(self.response).encode('utf-8')
 
+class JimRegistration:
+    '''
+    Класс, который реализует создание сообщения для регистрации по JIM протоколу.
+    Получает на вход login и password.
+    '''
+    def __init__(self, login, password):
+        self.login = login
+        self.password = password
+        self.response = dict()
+
+    def msgcompose(self):
+        '''
+        Функция, которая составляет JSON сообщение
+        '''
+        self.response = {
+            "action": "registration",
+            "time": time.ctime(),
+            "user": {
+                "account_name": self.login,
+                "password": self.password
+            }
+        }
+
+    def jsonmsg(self):
+        '''
+        Функция, которая возвращает json объект закодированый в utf-8
+        '''
+        self.msgcompose()
+        return json.dumps(self.response).encode('utf-8')
+
 if __name__ == '__main__':
 
     # test

@@ -1,8 +1,10 @@
-import sys
-import socket
 import json
+import socket
+import sys
 import time
-from jimprotocols import JimMessage, JimAuthenticate
+
+from jimprotocols import JimMessage, JimAuthenticate, JimRegistration
+
 
 def authenticate(login, password):
     '''
@@ -35,7 +37,26 @@ def authenticate(login, password):
         print(json_data['error'])
     return json_data
 
+def registration(login, password):
+    '''
+    Функция регистрации
+    :param login:
+    :param password:
+    :return:
+    '''
+
+    msg = JimRegistration(login, password)
+    request = msg.jsonmsg()
+    data = connection(request)
+    json_data = json.loads(data.decode('utf-8'))
+    return json_data
+
 def check_tokin(tokin):
+    '''
+    Функция проверки токина
+    :param tokin:
+    :return:
+    '''
 
     check_tokin_request = {
                     "action": "presence",
@@ -47,7 +68,8 @@ def check_tokin(tokin):
     data = connection(request.encode('utf-8'))
     return(json.loads(data.decode('utf-8')))
 
-def connection(json_object, host='localhost', port=8888):
+def connection(json_object, host='localhost', port=7777):
+#def connection(json_object, host='194.67.222.96', port=8888):
     '''
     Функция соединения с сервером
     :param json_object:
@@ -63,7 +85,8 @@ def connection(json_object, host='localhost', port=8888):
     return data
 
 class Conversation:
-    def __init__(self, host='localhost', port=8888):
+    def __init__(self, host='localhost', port=7777):
+    #def __init__(self, host='194.67.222.96', port=8888):
         self.host = host
         self.port = port
         self.sock = object()

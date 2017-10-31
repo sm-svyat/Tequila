@@ -1,8 +1,11 @@
-import socket
 import json
+import socket
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from bd import User, users
+
+from database.bd import User
+
 
 class MainServer:
     def __init__(self, ip, port):
@@ -20,6 +23,9 @@ class MainServer:
         self.tokin_dict = dict()
         self.users_list = list()
         self.accounts_dict = dict()
+        self.responses_dict = {"authenticate": self.authenticate,
+                             "msg": self.conversation, "presence": self.presence,
+                             "registration": self.registration}
 
     def connect(self):
 
@@ -34,34 +40,66 @@ class MainServer:
             self.clients.append(self.client)
 
             try:
-                #print(self.client)
                 self.data = self.client.recv(1024)
                 self.json_data = json.loads(self.data.decode('utf-8'))
-                self.respons_generator()
+                self.response_generator()
             except IndentationError:
                 print('Error 400. Wrong JSON-object.')
-                self.run()
+                continue
             except json.decoder.JSONDecodeError:
                 print('Error 400. Wrong JSON-object. 2')
-                self.run()
+                continue
+            except UnicodeDecodeError:
+                print('\'utf-8\' codec can\'t decode byte 0xc3 in position 7: invalid continuation byte')
+                continue
 
-    def respons_generator(self):
-        if 'tokin' in self.json_data.keys():
-            self.presence()
-        elif self.json_data['action'] == "authenticate":
-            self.authenticate()
-        elif self.json_data['action'] == "msg":
-            self.conversation()
-        elif self.json_data['action'] == "presence":
-            self.presence()
-        else:
+    def response_generator(self):
+        try:
+            self.responses_dict[self.json_data['action']]()
+
+        except KeyError:
             error_response = {
                 "response": 400,
                 "error": "Bad request"
                 }
-            self.string = json.dumps(error_response)
-            self.client.send(self.string)
-            self.client.close()
+            self.send_response(error_response)
+
+    def send_response(self, response):
+        self.string = json.dumps(response)
+        self.client.send(self.string.encode('utf-8'))
+        self.client.close()
+
+    def registration(self):
+        if session.query(User).filter_by(login = self.json_data['user']['account_name']).first():
+            print('Попытка зарегестрировать существующий login - {}'.format(self.json_data['user']['account_name']))
+
+            error_response = {
+                "response": 402,
+                "error": "The user with this login already exists"
+            }
+            self.send_response(error_response)
+
+        else:
+            try:
+                self.user = User(self.json_data['user']['account_name'], self.json_data['user']['password'])
+                session.add(self.user)
+                self.user.create_tokin()
+                session.commit()
+                print("Пользователь с ником %s прошел регистрацию %s" % (self.json_data['user']['account_name'], self.json_data['time']))
+
+            except:
+                print('Что-то пошло не так при регистрации, глянь что там')
+
+            self.users_list.append(self.user)
+            self.accounts_dict[self.json_data['user']['account_name']] = self.user
+            self.tokin_dict[self.user.tokin] = self.user
+            response = {
+                "response": 200,
+                "alert": "Registration is successful",
+                "tokin": self.user.tokin
+            }
+            print(self.users_list)
+            self.send_response(response)
 
     def authenticate(self):
         #if self.json_data['user']['account_name'] in users.keys():
@@ -72,7 +110,7 @@ class MainServer:
                 print("Пользователь с ником %s прошел аунтентификацию %s" % (self.json_data['user']['account_name'], self.json_data['time']) )
                 #self.user = User(self.json_data['user']['account_name'], self.json_data['user']['password'])
                 if self.json_data['user']['account_name'] in [user.login for user in self.users_list]:
-                    respons = {
+                    response = {
                         "response": 200,
                         "alert": "Authentication is successful",
                         "tokin": self.accounts_dict[self.json_data['user']['account_name']].tokin
@@ -89,24 +127,21 @@ class MainServer:
                     self.accounts_dict[self.json_data['user']['account_name']] = bd_user
                     #self.tokin_dict[self.user.tokin] = self.user
                     self.tokin_dict[self.user.tokin] = bd_user
-                    respons = {
+                    response = {
                         "response": 200,
                         "alert": "Authentication is successful",
                         "tokin": bd_user.tokin
                     }
                 print(self.users_list)
-                self.string = json.dumps(respons)
-                self.client.send(self.string.encode('utf-8'))
-                self.client.close()
+                self.send_response(response)
+
             else:
                 error_response = {
                     "response": 402,
                     "error": "Wrong password or no account with that name"
                     }
                 print("Ошибка 402, \"Wrong password\"")
-                self.string = json.dumps(error_response)
-                self.client.send(self.string.encode('utf-8'))
-                self.client.close()
+                self.send_response(error_response)
 
         else:
             error_response = {
@@ -114,13 +149,9 @@ class MainServer:
                 "error": "No account with that name"
             }
             print("Ошибка 402, \"Wrong password or no account with that name\"")
-            self.string = json.dumps(error_response)
-            self.client.send(self.string.encode('utf-8'))
-            self.client.close()
+            self.send_response(error_response)
 
     def conversation(self):
-        #Здесь будет реализовано общение между пользователями, однажды...
-        print('Здесь будет реализовано общение между пользователями, однажды...')
         #self.chat = Chat()
         try:
             if self.json_data['mode'] == 'w':
@@ -136,7 +167,7 @@ class MainServer:
                 print('Неверный режим запуска {}. Режим запуска должен быть r - чтение или w - запись'.format(self.json_data['mode']))
         except KeyError:
             pass
-            #print('Без модуля')
+            print('Некорректное подключение к чату')
 
         #print(self.json_data['message'])
         self.chat.chat_history.append(self.json_data)
@@ -147,26 +178,22 @@ class MainServer:
     def presence(self):
         #if self.json_data['tokin'] in self.tokin_dict.keys():
         if session.query(User).filter_by(tokin = self.json_data['tokin']).first():
-            u = session.query(User).filter_by(tokin = self.json_data['tokin']).first()
+            self.user = session.query(User).filter_by(tokin = self.json_data['tokin']).first()
             #print('Вот все мои токины\n', self.tokin_dict.keys())
             #u = self.tokin_dict[self.json_data['tokin']]
-            respons = {
+            response = {
                 "response": 400,
-                "alert": u.login,
-                "tokin": u.tokin
+                "alert": self.user.login,
+                "tokin": self.user.tokin
             }
-            self.string = json.dumps(respons)
-            self.client.send(self.string.encode('utf-8'))
-            self.client.close()
+            self.send_response(response)
         else:
             print('Неверный токин клиента.')
-            respons = {
+            response = {
                 "response": 403,
                 "alert": "Неверный токин. Пройди аунтентификацию.",
             }
-            self.string = json.dumps(respons)
-            self.client.send(self.string.encode('utf-8'))
-            self.client.close()
+            self.send_response(response)
 
 class Chat:
     def __init__(self):
@@ -216,11 +243,11 @@ class Chat:
 
 if __name__ == '__main__':
 
-    engine = create_engine('sqlite:///tkilla_database.db', echo=False)
+    engine = create_engine('sqlite:///database/tkilla_database.db', echo=False)
     pool_recycle = 7200  # переустановление соединения с бд через каждые 2 часа
 
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    server = MainServer('', 8888)
+    server = MainServer('', 7777)
     server.connect()
