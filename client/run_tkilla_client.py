@@ -37,10 +37,11 @@ def print_help():
     run()
 
 
-def reg():
-    login = input('Введите login\n')
-    password = input('Введите password\n')
-    second_passwd = input('Повторите password\n')
+def recording(login, password, second_passwd):
+    #login = input('Введите login\n')
+    #password = input('Введите password\n')
+    #second_passwd = input('Повторите password\n')
+    print(login)
     if password == second_passwd:
         global user
         user = Client(login, password)
@@ -60,12 +61,13 @@ def reg():
 
     else:
         print('Пароли не совпадают.\nПройдите регистрацию заново.')
-    run()
+    #run()
 
 
-def log_in():
-    login = input('Введите login\n')
-    password = input('Введите password\n')
+def log_in(login, password):
+#def log_in():
+    #login = input('Введите login\n')
+    #password = input('Введите password\n')
     global user
     user = Client(login, password)
     try:
@@ -81,7 +83,8 @@ def log_in():
 
     except ConnectionRefusedError:
         print("Чет сервер не отвечает :с")
-    run()
+    print('Bye!')
+    #run()
 
 
 def chat():
@@ -100,7 +103,7 @@ def presence():
         print(check_tokin(user.tokin))
     except NameError:
         print('Вы пока не вошли в систему.\nИспользуйте команду \"\\log in\" для аунтентификации\n')
-    run()
+    #run()
 
 
 def stop_client():
@@ -112,7 +115,7 @@ if __name__ == '__main__':
 
     do = {
         "\\help": print_help,
-        '\\reg': reg,
+        '\\reg': recording,
         '\\log in': log_in,
         '\\chat': chat,
         '\\presence': presence,

@@ -1,0 +1,560 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>877</width>
+    <height>598</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <property name="autoFillBackground">
+   <bool>true</bool>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QFrame" name="frameEntry">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>250</y>
+      <width>331</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QPushButton" name="pushButtonAuthentification">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>10</y>
+       <width>110</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Authentification</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButtonRegistration">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>10</y>
+       <width>110</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Registration</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="frameAuthentification">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>340</x>
+      <y>120</y>
+      <width>211</width>
+      <height>321</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QPushButton" name="pushButtonAuthentificationOk">
+     <property name="geometry">
+      <rect>
+       <x>50</x>
+       <y>230</y>
+       <width>111</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Ок</string>
+     </property>
+     <property name="shortcut">
+      <string>Return</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEditLogin">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>60</y>
+       <width>171</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="inputMask">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEditPasswd">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>120</y>
+       <width>171</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="labelLogin">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>30</y>
+       <width>47</width>
+       <height>13</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Login</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="labelPasswd">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>100</y>
+       <width>47</width>
+       <height>13</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Password</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="frameRegistration">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>340</x>
+      <y>120</y>
+      <width>231</width>
+      <height>291</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QLineEdit" name="lineEditNewLogin">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>60</y>
+       <width>171</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="inputMask">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEditNewPasswd">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>120</y>
+       <width>171</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="labelNewLogin">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>30</y>
+       <width>47</width>
+       <height>13</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Login</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="labelNewPasswd">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>100</y>
+       <width>47</width>
+       <height>13</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Password</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButtonRegistrationOk">
+     <property name="geometry">
+      <rect>
+       <x>50</x>
+       <y>230</y>
+       <width>111</width>
+       <height>50</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Ок</string>
+     </property>
+     <property name="shortcut">
+      <string>Return</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEditRepeatNewPasswd">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>180</y>
+       <width>171</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QLabel" name="labelRepeatNewPasswd">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>160</y>
+       <width>91</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Repeat password</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QFrame" name="frameConversation">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>10</y>
+      <width>581</width>
+      <height>541</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::StyledPanel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Raised</enum>
+    </property>
+    <widget class="QTextBrowser" name="textBrowserReadMsg">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>551</width>
+       <height>431</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QPlainTextEdit" name="plainTextEditWriteMsg">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>450</y>
+       <width>551</width>
+       <height>41</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButtonSendMsg">
+     <property name="geometry">
+      <rect>
+       <x>450</x>
+       <y>500</y>
+       <width>111</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Send</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButtonLogout">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>500</y>
+       <width>111</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Log out</string>
+     </property>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>877</width>
+     <height>21</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>pushButtonRegistration</sender>
+   <signal>clicked()</signal>
+   <receiver>frameEntry</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>164</x>
+     <y>95</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>160</x>
+     <y>131</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRegistrationOk</sender>
+   <signal>clicked()</signal>
+   <receiver>frameAuthentification</receiver>
+   <slot>show()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>169</x>
+     <y>365</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>145</x>
+     <y>261</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRegistration</sender>
+   <signal>clicked()</signal>
+   <receiver>frameRegistration</receiver>
+   <slot>show()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>164</x>
+     <y>95</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>160</x>
+     <y>371</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRegistrationOk</sender>
+   <signal>clicked()</signal>
+   <receiver>frameRegistration</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>419</x>
+     <y>325</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>425</x>
+     <y>311</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRegistration</sender>
+   <signal>clicked()</signal>
+   <receiver>lineEditNewLogin</receiver>
+   <slot>clear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>154</x>
+     <y>225</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>155</x>
+     <y>201</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRegistration</sender>
+   <signal>clicked()</signal>
+   <receiver>lineEditNewPasswd</receiver>
+   <slot>clear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>154</x>
+     <y>225</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>155</x>
+     <y>261</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonAuthentification</sender>
+   <signal>clicked()</signal>
+   <receiver>frameEntry</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>154</x>
+     <y>325</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>155</x>
+     <y>276</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonAuthentification</sender>
+   <signal>clicked()</signal>
+   <receiver>frameAuthentification</receiver>
+   <slot>show()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>154</x>
+     <y>325</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>725</x>
+     <y>251</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonAuthentificationOk</sender>
+   <signal>clicked()</signal>
+   <receiver>frameAuthentification</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>725</x>
+     <y>345</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>725</x>
+     <y>251</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonAuthentification</sender>
+   <signal>clicked()</signal>
+   <receiver>lineEditLogin</receiver>
+   <slot>clear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>154</x>
+     <y>325</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>145</x>
+     <y>171</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonAuthentificationOk</sender>
+   <signal>clicked()</signal>
+   <receiver>frameConversation</receiver>
+   <slot>show()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>145</x>
+     <y>355</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>585</x>
+     <y>311</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLogout</sender>
+   <signal>clicked()</signal>
+   <receiver>frameConversation</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>365</x>
+     <y>556</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>585</x>
+     <y>311</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLogout</sender>
+   <signal>clicked()</signal>
+   <receiver>frameEntry</receiver>
+   <slot>show()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>365</x>
+     <y>556</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>155</x>
+     <y>276</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

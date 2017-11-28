@@ -30,6 +30,18 @@ class User(Base):
     def getmsg(self):
         return self.client_message
 
+#class Contacts(Base):
+#    __tablename__ = 'contacts'
+#    user_id = Column(Integer)
+#    contact_id = Column(Integer)
+
+#    def __init__(self, tokin):
+#        self.tokin = tokin
+
+#    def get_contact_list(self):
+
+
+
 users = {'C0deMaver1ck': 'CorrectHorseBatteryStaple', 'dron94': '1234', 'svyat': '1111'} #Just dict with user's logins and passwords
 
 if __name__ == '__main__':
