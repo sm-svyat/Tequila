@@ -7,23 +7,25 @@ class JimMessage:
     Класс, который реализует создание сообщению по JIM протоколу.
     Получает на вход отправителя, адресата и само сообщение.
     '''
-    def __init__(self, sender, addressee,  message):
-        self.sender = sender
-        self.addressee = addressee
+    def __init__(self, tokin, peer,  message):
+        self.tokin = tokin
+        self.peer = peer
         self.message = message
         self.response = dict()
+
 
     def msgcompose(self):
         '''
         Функция, которая составляет JSON сообщение
         '''
         self.response = {
-        "action": "msg",
-        "time": time.ctime(),
-        "to": str(self.addressee),
-        "from": str(self.sender),
-        "message": self.message
+            'action': 'msg',
+            'tokin': self.tokin,
+            'to': self.peer,
+            'time': time.ctime(),
+            'message': self.message
         }
+
 
     def jsonmsg(self):
         '''
@@ -31,6 +33,7 @@ class JimMessage:
         '''
         self.msgcompose()
         return json.dumps(self.response).encode('utf-8')
+
 
 class JimResponse:
     '''
@@ -58,7 +61,8 @@ class JimResponse:
         self.msgcompose()
         return json.dumps(self.response).encode('utf-8')
 
-class JimAuthenticate:
+
+class JimAuthentication:
     '''
     Класс, который реализует создание сообщения для входа в систему по JIM протоколу.
     Получает на вход login и password.
@@ -81,12 +85,14 @@ class JimAuthenticate:
             }
         }
 
+
     def jsonmsg(self):
         '''
         Функция, которая возвращает json объект закодированый в utf-8
         '''
         self.msgcompose()
         return json.dumps(self.response).encode('utf-8')
+
 
 class JimRegistration:
     '''
@@ -97,6 +103,7 @@ class JimRegistration:
         self.login = login
         self.password = password
         self.response = dict()
+
 
     def msgcompose(self):
         '''
@@ -111,12 +118,100 @@ class JimRegistration:
             }
         }
 
+
     def jsonmsg(self):
         '''
         Функция, которая возвращает json объект закодированый в utf-8
         '''
         self.msgcompose()
         return json.dumps(self.response).encode('utf-8')
+
+
+class JimHistory:
+    '''
+    Класс, который реализует создание сообщения для регистрации по JIM протоколу.
+    Получает на вход login и password.
+    '''
+    def __init__(self, tokin, peer):
+        self.tokin = tokin
+        self.peer = peer
+        self.response = dict()
+
+
+    def msgcompose(self):
+        '''
+        Функция, которая составляет JSON сообщение
+        '''
+        self.request = {
+            'action': 'history',
+            'tokin': self.tokin,
+            'to': self.peer
+        }
+
+
+    def jsonmsg(self):
+        '''
+        Функция, которая возвращает json объект закодированый в utf-8
+        '''
+        self.msgcompose()
+        return json.dumps(self.response).encode('utf-8')
+
+
+class JimAddContact:
+    '''
+    Класс, который реализует создание сообщения для регистрации по JIM протоколу.
+    Получает на вход login и password.
+    '''
+    def __init__(self, tokin, contactLogin):
+        self.tokin = tokin
+        self.contactLogin = contactLogin
+        self.response = dict()
+
+
+    def msgcompose(self):
+        '''
+        Функция, которая составляет JSON сообщение
+        '''
+        self.request = {
+            'action': 'add_contact',
+            'user': self.tokin,
+            'contact': self.contactLogin
+        }
+
+    def jsonmsg(self):
+        '''
+        Функция, которая возвращает json объект закодированый в utf-8
+        '''
+        self.msgcompose()
+        return json.dumps(self.response).encode('utf-8')
+
+
+class JimGetContact:
+    '''
+    Класс, который реализует создание сообщения для регистрации по JIM протоколу.
+    Получает на вход login и password.
+    '''
+    def __init__(self, tokin):
+        self.tokin = tokin
+        self.response = dict()
+
+
+    def msgcompose(self):
+        '''
+        Функция, которая составляет JSON сообщение
+        '''
+        self.request = {
+            'action': 'get_contacts',
+            'tokin': self.tokin,
+        }
+
+    def jsonmsg(self):
+        '''
+        Функция, которая возвращает json объект закодированый в utf-8
+        '''
+        self.msgcompose()
+        return json.dumps(self.response).encode('utf-8')
+
 
 if __name__ == '__main__':
 
@@ -131,7 +226,3 @@ if __name__ == '__main__':
     data = msg.jsonmsg()
     json_data = json.loads(data.decode('utf-8'))
     print(json_data)
-
-    # test
-    client = Client("Svyat")
-    print(client)

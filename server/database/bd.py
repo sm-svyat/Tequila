@@ -30,15 +30,40 @@ class User(Base):
     def getmsg(self):
         return self.client_message
 
-#class Contacts(Base):
-#    __tablename__ = 'contacts'
-#    user_id = Column(Integer)
-#    contact_id = Column(Integer)
+class Message(Base):
+    __tablename__ = 'messages'
+    id = Column(Integer, primary_key=True)
+    from_id = Column(Integer)
+    to_id = Column(Integer)
+    time = Column(String)
+    message = Column(String)
 
-#    def __init__(self, tokin):
-#        self.tokin = tokin
+    def __init__(self, from_id, to_id, time, message):
+        self.from_id = from_id
+        self.to_id = to_id
+        self.time = time
+        self.message = message
 
-#    def get_contact_list(self):
+
+    def __repr__(self):
+        return '{}'.format({
+            "from": self.from_id,
+            "to": self.to_id,
+            "time": self.time,
+            "message": self.message
+            })
+
+
+class Contact(Base):
+    __tablename__ = 'contacts'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer)
+    contact_id = Column(Integer)
+    accepted = False
+
+    def __init__(self, user_id, contact_id):
+        self.user_id = user_id
+        self.contact_id = contact_id
 
 
 

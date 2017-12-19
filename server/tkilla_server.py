@@ -4,238 +4,392 @@ import socket
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from database.bd import User
+from database.bd import User, Message, Contact
+
+class DB:
+    def __init__(self, session):
+        self.session = session
+
+    def get_user_by_tokin(self, tokin):
+        return session.query(User).filter_by(tokin=tokin).first()
+
+    def get_user(self, login):
+        return session.query(User).filter_by(login = login).first()
+
+    def get_user_nickname(self, user_id):
+        return session.query(User).filter_by(id=user_id).first().login
+
+    def commit(self):
+        self.session.commit()
+
+    def add_user(self, user):
+        user.create_tokin()
+        self.session.add(user)
+
+    def get_messages(self, user1, user2):
+        messages = self.session.query(Message).filter_by(from_id=user1, to_id=user2)
+        for message in messages:
+            yield message
+        messages = self.session.query(Message).filter_by(from_id=user2, to_id=user1)
+        for message in messages:
+            yield message
+
+    def add_message(self, from_id, to_id, time, message):
+        message = Message(from_id, to_id, time, message)
+        self.session.add(message)
+        self.commit()
+
+    def add_contact(self, user_id, contact_id):
+        if self.session.query(Contact).filter_by(user_id=user_id, contact_id=contact_id).first():
+            print('trying to add existing contact')
+            return
+        contact = Contact(user_id, contact_id)
+        self.session.add(contact)
+        self.commit()
+
+    def get_contacts(self, user_id):
+        for contact in self.session.query(Contact).filter_by(user_id=user_id):
+            if self.session.query(Contact).filter_by(user_id=contact.contact_id, contact_id=user_id).first():
+                contact.accepted = True
+            else:
+                contact.accepted = False
+            yield contact
+
+    def has_contact(self, user_id, peer_id):
+        if not self.session.query(Contact).filter_by(user_id=user_id, contact_id=peer_id).first():
+            return False
+        if not self.session.query(Contact).filter_by(user_id=peer_id, contact_id=user_id).first():
+            return False
+        return True
+
+class DummyClient:
+    def __init__(self, data):
+        self.data = data
+
+    def recv(self, len):
+        return self.data
+
+    def send(self, response):
+        print("response: ", response)
+
+class UserServer:
+    def __init__(self, chat, client):
+        self.client = client
+        self.chat = chat
+        self.do_close_socket = True
+        self.responsers = {
+            'authenticate': self.authenticate,
+            'msg':          self.conversation,
+            'registration': self.registration,
+            'history'     : self.get_history,
+            'updates'     : self.get_updates,
+            'add_contact' : self.add_contact,
+            'get_contacts': self.get_contacts,
+        }
+
+
+    def serve(self):
+        error_response = {
+            "response": 400,
+            "error": "Bad request"
+        }
+        try:
+            data = self.client.recv(1024)
+            print("Я тут")
+            self.request = json.loads(data.decode('utf-8'))
+            print(self.request)
+            action = self.request['action']
+            print('action:', action)
+            response = self.responsers[action]()
+            if response is None:
+                response = error_response
+            self.send_response(response)
+            return self.do_close_socket
+        except IndentationError:
+            print('Error 400. Wrong JSON-object.')
+        except json.decoder.JSONDecodeError:
+            print('Error 400. Wrong JSON-object. 2')
+        except UnicodeDecodeError:
+            print('\'utf-8\' codec can\'t decode byte 0xc3 in position 7: invalid continuation byte')
+        except KeyError:
+            print('Key error in request')
+        #except Exception as e:
+            #print('Unknown exception during serving a client: {}'.format(e))
+        self.send_response(error_response)
+        return self.do_close_socket
+
+    def send_response(self, response):
+        #print(response)
+        response = json.dumps(response)
+        self.client.send(response.encode('utf-8'))
+
+    def add_contact(self):
+        '''
+        request:
+        {
+            action: 'add_contact',
+            tokin: 'xxx',
+            contact: 'contact_nickname'
+        }
+        response:
+        {
+            'response': 200
+        }
+        or an ordinary error response
+        '''
+        try:
+            user = db.get_user_by_tokin(self.request['tokin'])
+            contact = db.get_user(self.request['contact'])
+            if not user or not contact:
+                print('add_contact: no such users')
+                return None
+            user_id = user.id
+            contact_id = contact.id
+            db.add_contact(user_id, contact_id)
+            return {
+                'response': 200
+            }
+        except KeyError:
+            print('key error in add_contact')
+            return None
+
+    def get_contacts(self):
+        '''
+        {
+            'action': 'get_contacts',
+            'tokin': 'xxx'
+        }
+        '''
+        print('...getting contacts...')
+        try:
+            user = db.get_user_by_tokin(self.request['tokin'])
+            if not user:
+                print('get_contacts: no such user')
+                return None
+        except KeyError:
+            print('key error in get_contacts')
+            return None
+        contacts = []
+        for contact in db.get_contacts(user.id):
+            contacts.append((db.get_user_nickname(contact.contact_id), contact.accepted))
+        return {
+            'response': 200,
+            'contacts': contacts
+        }
+
+    def get_history(self):
+        '''
+        Request must have the following schema:
+        {
+            tokin: "xxx",
+            from: "from_nickname"
+            to: "to_nickname"
+        }
+        '''
+        from_user = db.get_user_by_tokin(self.request['tokin'])
+        to_user = db.get_user(self.request['to'])
+        if not from_user or not to_user:
+            print('No user')
+            return None
+        messages = []
+        for message in db.get_messages(from_user.id, to_user.id):
+            messages.append((message.id, message))
+        messages.sort(key=lambda x: x[0])
+        response = {
+            'response': 200,
+            'messages': []
+        }
+        for message in messages:
+            response['messages'].append(str(message[1]))
+        return response
+
+
+
+    def authenticate(self):
+        '''
+        Request:
+        {
+            'action': 'authenticate',
+            'time': 'time'
+            'user': {
+                'account_name': 'name',
+                'password': 'password'
+            }
+        }
+        Successful response:
+        {
+            'response': 200,
+            'tokin': 'xxx'
+        }
+        '''
+        login = self.request['user']['account_name']
+        db_user = db.get_user(login)
+        if not db_user:
+            print("Ошибка 402, \"Wrong password or no account with that name\"")
+            return {
+                "response": 402,
+                "error": "No account with that name"
+            }
+        if self.request['user']['password'] == db_user.password:
+            print("Пользователь с ником {} прошел аунтентификацию {}"
+                    .format(self.request['user']['account_name'], self.request['time']))
+        else:
+            print("Ошибка 402, \"Wrong password\"")
+            return {
+                "response": 402,
+                "error": "Wrong password or no account with that name"
+            }
+        db_user.create_tokin()
+        db.commit()
+        return {
+            "response": 200,
+            "alert": "Authentication is successful",
+            "tokin": db_user.tokin
+        }
+
+    def get_updates(self):
+        ok_response = {
+            'response': 200
+        }
+        try:
+            user = db.get_user_by_tokin(self.request['tokin'])
+            if not user:
+                print('no such user')
+                return None
+            self.chat.add_reading_client(self.client, user.login, self.request['peer'])
+            self.do_close_socket = False
+            return ok_response
+        except KeyError:
+            print('key error for get_updates')
+            return None
+
+
+    def conversation(self):
+        ok_response = {
+            'response': 200
+        }
+        if self.chat.add_message(self.request):
+            return ok_response
+        return None
+
+    def registration(self):
+        login = self.request['user']['account_name']
+        user = db.get_user(login)
+        if user:
+            print('Попытка зарегестрировать существующий login - {}'.format(login))
+            return {
+                "response": 402,
+                "error": "The user with this login already exists"
+            }
+        try:
+            user = User(login, self.request['user']['password'])
+            db.add_user(user)
+            db.commit()
+            print("Пользователь с ником %s прошел регистрацию %s" % (login, self.request['time']))
+            return {
+                "response": 200,
+                "alert": "Registration is successful",
+                "tokin": user.tokin
+            }
+        except:
+            print('Что-то пошло не так при регистрации, глянь что там')
+            return None
 
 
 class MainServer:
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
-        self.client = object()
-        self.addr = str()
-        self.data = str()
-        self.json_data = str()
-        self.string = str()
-        self.sock = str()
-        self.clients = list()
         self.chat = Chat()
-        self.user = User
-        self.tokin_dict = dict()
-        self.users_list = list()
-        self.accounts_dict = dict()
-        self.responses_dict = {"authenticate": self.authenticate,
-                             "msg": self.conversation, "presence": self.presence,
-                             "registration": self.registration}
 
     def connect(self):
-
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Avoid 'adress already in use' error
+        # https://stackoverflow.com/a/6380198
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
         self.sock.listen(15)
         self.run()
 
     def run(self):
+        '''
+        # tests start...
+        datas = [
+                b'{"action": "authenticate", "time": "time", "user": {"account_name": "1", "password": "1"}}',
+                b'{"action": "msg", "mode": "r"}',
+                b'{"action": "msg", "tokin": "xxx", "from": "1", "to": "2", "time": "time", "message": "hello"}',
+                b'{"action": "history", "from": "1", "to": "2"}'
+                ]
+        for data in datas:
+            client = DummyClient(data)
+            server = UserServer(self.chat, client)
+            server.serve()
+        return
+        # tests finished.
+        '''
         while True:
-            self.client, self.addr = self.sock.accept()
-            self.clients.append(self.client)
+            print('waiting for a client...')
+            client, self.addr = self.sock.accept()
+            print('accepted!')
+            server = UserServer(self.chat, client)
+            if server.serve():
+                client.close()
 
-            try:
-                self.data = self.client.recv(1024)
-                self.json_data = json.loads(self.data.decode('utf-8'))
-                self.response_generator()
-            except IndentationError:
-                print('Error 400. Wrong JSON-object.')
-                continue
-            except json.decoder.JSONDecodeError:
-                print('Error 400. Wrong JSON-object. 2')
-                continue
-            except UnicodeDecodeError:
-                print('\'utf-8\' codec can\'t decode byte 0xc3 in position 7: invalid continuation byte')
-                continue
-
-    def response_generator(self):
-        try:
-            self.responses_dict[self.json_data['action']]()
-
-        except KeyError:
-            error_response = {
-                "response": 400,
-                "error": "Bad request"
-                }
-            self.send_response(error_response)
-
-    def send_response(self, response):
-        self.string = json.dumps(response)
-        self.client.send(self.string.encode('utf-8'))
-        self.client.close()
-
-    def registration(self):
-        if session.query(User).filter_by(login = self.json_data['user']['account_name']).first():
-            print('Попытка зарегестрировать существующий login - {}'.format(self.json_data['user']['account_name']))
-
-            error_response = {
-                "response": 402,
-                "error": "The user with this login already exists"
-            }
-            self.send_response(error_response)
-
-        else:
-            try:
-                self.user = User(self.json_data['user']['account_name'], self.json_data['user']['password'])
-                session.add(self.user)
-                self.user.create_tokin()
-                session.commit()
-                print("Пользователь с ником %s прошел регистрацию %s" % (self.json_data['user']['account_name'], self.json_data['time']))
-
-            except:
-                print('Что-то пошло не так при регистрации, глянь что там')
-
-            self.users_list.append(self.user)
-            self.accounts_dict[self.json_data['user']['account_name']] = self.user
-            self.tokin_dict[self.user.tokin] = self.user
-            response = {
-                "response": 200,
-                "alert": "Registration is successful",
-                "tokin": self.user.tokin
-            }
-            print(self.users_list)
-            self.send_response(response)
-
-    def authenticate(self):
-        #if self.json_data['user']['account_name'] in users.keys():
-        if session.query(User).filter_by(login = self.json_data['user']['account_name']).first():
-            bd_user = session.query(User).filter_by(login = self.json_data['user']['account_name']).first()
-            #if self.json_data['user']['password'] == users[self.json_data['user']['account_name']]:
-            if self.json_data['user']['password'] == bd_user.password:
-                print("Пользователь с ником %s прошел аунтентификацию %s" % (self.json_data['user']['account_name'], self.json_data['time']) )
-                #self.user = User(self.json_data['user']['account_name'], self.json_data['user']['password'])
-                if self.json_data['user']['account_name'] in [user.login for user in self.users_list]:
-                    response = {
-                        "response": 200,
-                        "alert": "Authentication is successful",
-                        "tokin": self.accounts_dict[self.json_data['user']['account_name']].tokin
-                    }
-                else:
-                    #self.user = User(self.json_data['user']['account_name'], self.json_data['user']['password'])
-                #Создание токина
-                    #self.user.create_tokin()
-                    bd_user.create_tokin()
-                    session.commit()
-                    #self.users_list.append(self.user)
-                    self.users_list.append(bd_user)
-                    #self.accounts_dict[self.json_data['user']['account_name']] = self.user
-                    self.accounts_dict[self.json_data['user']['account_name']] = bd_user
-                    #self.tokin_dict[self.user.tokin] = self.user
-                    self.tokin_dict[self.user.tokin] = bd_user
-                    response = {
-                        "response": 200,
-                        "alert": "Authentication is successful",
-                        "tokin": bd_user.tokin
-                    }
-                print(self.users_list)
-                self.send_response(response)
-
-            else:
-                error_response = {
-                    "response": 402,
-                    "error": "Wrong password or no account with that name"
-                    }
-                print("Ошибка 402, \"Wrong password\"")
-                self.send_response(error_response)
-
-        else:
-            error_response = {
-                "response": 402,
-                "error": "No account with that name"
-            }
-            print("Ошибка 402, \"Wrong password or no account with that name\"")
-            self.send_response(error_response)
-
-    def conversation(self):
-        #self.chat = Chat()
-        try:
-            if self.json_data['mode'] == 'w':
-                self.chat.add_writing_client(self.client)
-                return
-
-            elif self.json_data['mode'] == 'r':
-                self.chat.add_reading_client(self.client)
-                print(self.chat.reading_clients)
-                return
-
-            else:
-                print('Неверный режим запуска {}. Режим запуска должен быть r - чтение или w - запись'.format(self.json_data['mode']))
-        except KeyError:
-            pass
-            print('Некорректное подключение к чату')
-
-        #print(self.json_data['message'])
-        self.chat.chat_history.append(self.json_data)
-        #self.chat.read_requests()  # Получаем входные сообщения
-        print(self.chat.chat_history)
-        self.chat.write_requests() # Выполним отправку входящих сообщений
-
-    def presence(self):
-        #if self.json_data['tokin'] in self.tokin_dict.keys():
-        if session.query(User).filter_by(tokin = self.json_data['tokin']).first():
-            self.user = session.query(User).filter_by(tokin = self.json_data['tokin']).first()
-            #print('Вот все мои токины\n', self.tokin_dict.keys())
-            #u = self.tokin_dict[self.json_data['tokin']]
-            response = {
-                "response": 400,
-                "alert": self.user.login,
-                "tokin": self.user.tokin
-            }
-            self.send_response(response)
-        else:
-            print('Неверный токин клиента.')
-            response = {
-                "response": 403,
-                "alert": "Неверный токин. Пройди аунтентификацию.",
-            }
-            self.send_response(response)
 
 class Chat:
     def __init__(self):
-        self.chat_history = list()
-        self.instant_messages = list()
-        self.clients = list()
-        self.writing_clients = list()
         self.reading_clients = list()
 
-    def add_writing_client(self, client):
-        self.writing_clients.append(client)
+    def add_reading_client(self, client, user_nick, peer_nick):
+        print('add reading client')
+        self.reading_clients.append((user_nick, peer_nick, client))
 
-    def add_reading_client(self, client):
-        self.reading_clients.append(client)
+    def add_message(self, request):
+        '''
+        message must have the following schema:
+        {
+            tokin: "xxx",
+            to: "to_nickname"
+            time: "time"
+            message: "message"
+        }
+        '''
+        try:
+            from_user = db.get_user_by_tokin(request['tokin'])
+            to_user = db.get_user(request['to'])
+            if not from_user or not to_user:
+                print('No user')
+                return False
+            if not db.has_contact(from_user.id, to_user.id):
+                print('Not in contact list')
+                return False
+            from_id = from_user.id
+            to_id = to_user.id
+            db.add_message(from_id, to_id, request['time'], request['message'])
+            request.pop('tokin')
+            request['from'] = from_user.login
+            self.write_requests(request)
+            return True
+        except KeyError:
+            print('key error in message')
+            return False
 
-    def read_requests(self):
-        """
-        Чтение сообщений, которые будут посылать клиенты
-        """
-        self.instant_messages = list()
-        for sock in self.writing_clients:
-            try:
-                self.data = sock.recv(1024).decode('utf-8')
-                self.chat_history.append(self.data)
-                self.instant_messages.append(self.data)
-            except:
-                print('Какие-то проблемы при чтении сообщений отправленных в чат')
-                #Реализовать отключение клиента TODO
-
-    def write_requests(self):
+    def write_requests(self, request):
         """
         Отправка сообщений тем клиентам, которые их ждут
         """
-        for sock in self.reading_clients:
-        #    for message in self.chat_history:
-            message = self.chat_history[-1]
+        for target_user, target_peer, sock in self.reading_clients:
+            message = request
+            print(target_user, target_peer, message)
+            if ((message['from'], message['to']) != (target_user, target_peer) and
+                (message['from'], message['to']) != (target_peer, target_user)):
+                    continue
             try:
+                print('send message to reader')
                 message = json.dumps(message)
                 resp = message.encode('utf-8')
                 sock.send(resp)
-
-            except ConnectionResetError:
+            except (BrokenPipeError, ConnectionResetError):
                 print('Удаленный хост принудительно разорвал существующее подключение')
 
                 #    print('Какие-то проблемы при записи сообщений отправленных в чат')
@@ -248,6 +402,7 @@ if __name__ == '__main__':
 
     Session = sessionmaker(bind=engine)
     session = Session()
+    db = DB(session)
 
     server = MainServer('', 7777)
     server.connect()
