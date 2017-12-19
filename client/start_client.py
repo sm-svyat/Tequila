@@ -1,22 +1,28 @@
 import sys
 import json
 from PyQt5 import QtWidgets
+from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from threading import Thread
-import scheme_gui_client
-#from tkilla_client import Conversation,JimMessage
-from run_tkilla_client import recording, log_in, Conversation,JimMessage
-from client import SocketEx
+import ui_client
+from controller import recording, log_in, Conversation,JimMessage, get_contact_list, add_contact, get_history, SocketEx
+#from client import SocketEx
 import select
 
 reader = None
 user = object()
+PEER = 'Max'
 
-class InitialUi_MainWindow(scheme_gui_client.Ui_MainWindow):
+class InitialUi_MainWindow(ui_client.Ui_MainWindow):
     def setupUi(self, MainWindow):
-        scheme_gui_client.Ui_MainWindow.setupUi(self, MainWindow)
+        ui_client.Ui_MainWindow.setupUi(self, MainWindow)
+        self.MainWindow = MainWindow
+        self.MainWindow.resize(290, 589)
         self.frameRegistration.hide()
         self.frameAuthentification.hide()
         self.frameConversation.hide()
+        global contactListWiew
+        QStandardItemModel(self.listViewContactList)
+        self.contactListWiew = QStandardItemModel(self.listViewContactList)
 
 
 class TkillaWindow(QtWidgets.QMainWindow):
@@ -26,10 +32,12 @@ class TkillaWindow(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
         self.ui.pushButtonRegistration.clicked.connect(Registration(self.ui.frameEntry, self.ui.frameRegistration))
         self.ui.pushButtonAuthentification.clicked.connect(Authentification(self.ui.frameEntry, self.ui.frameAuthentification))
-        self.ui.pushButtonRegistrationOk.clicked.connect(CheckRegistration(self.ui.lineEditNewLogin, self.ui.lineEditNewPasswd, self.ui.lineEditRepeatNewPasswd, self.ui.frameEntry, self.ui.frameRegistration, self.ui.frameConversation, self.ui.textBrowserReadMsg))
-        self.ui.pushButtonAuthentificationOk.clicked.connect(CheckAuthentification(self.ui.lineEditLogin, self.ui.lineEditPasswd, self.ui.frameEntry, self.ui.frameAuthentification, self.ui.frameConversation, self.ui.textBrowserReadMsg))
+        self.ui.pushButtonRegistrationOk.clicked.connect(CheckRegistration(self.ui.lineEditNewLogin, self.ui.lineEditNewPasswd, self.ui.lineEditRepeatNewPasswd, self.ui.frameEntry, self.ui.frameRegistration, self.ui.frameConversation,self.ui.listViewContactList,self.ui.contactListWiew, self.ui.textBrowserReadMsg, self.ui.MainWindow))
+        self.ui.pushButtonAuthentificationOk.clicked.connect(CheckAuthentification(self.ui.lineEditLogin, self.ui.lineEditPasswd, self.ui.frameEntry, self.ui.frameAuthentification, self.ui.frameConversation,self.ui.listViewContactList, self.ui.contactListWiew, self.ui.textBrowserReadMsg, self.ui.MainWindow))
         self.ui.pushButtonSendMsg.clicked.connect(Writer(self.ui.plainTextEditWriteMsg))
-        self.ui.pushButtonLogout.clicked.connect(Logout(self.ui.frameConversation, self.ui.textBrowserReadMsg, self.ui.frameEntry))
+        self.ui.pushButtonLogout.clicked.connect(Logout(self.ui.frameConversation, self.ui.textBrowserReadMsg, self.ui.frameEntry, self.ui.MainWindow))
+        self.ui.pushButtonAddContact.clicked.connect(AddContact(self.ui.plainTextEditNewContact, self.ui.listViewContactList,self.ui.contactListWiew, self.ui.textBrowserReadMsg))
+        #self.ui.contactListWiew().selectionChanged.connect(change_peer)
 
 
     def closeEvent(self, event):
@@ -38,29 +46,37 @@ class TkillaWindow(QtWidgets.QMainWindow):
 
 
 class CheckAuthentification:
-    def __init__(self, lineEditLogin, lineEditPasswd, frameEntry, frameAuthentification, frameConversation, textBrowserReadMsg):
+    def __init__(self, lineEditLogin, lineEditPasswd, frameEntry, frameAuthentification, frameConversation,listViewContactList, contactListWiew, textBrowserReadMsg, MainWindow):
         self.lineEditLogin = lineEditLogin
         self.lineEditPasswd = lineEditPasswd
         self.frameEntry = frameEntry
         self.frameAuthentification = frameAuthentification
         self.frameConversation = frameConversation
+        self.listViewContactList = listViewContactList
+        self.contactListWiew = contactListWiew
         self.textBrowserReadMsg = textBrowserReadMsg
+        self.MainWindow = MainWindow
 
     def __call__(self):
         try:
             requestAuthentification = log_in(self.lineEditLogin.text(), self.lineEditPasswd.text())
             if requestAuthentification[0]:
                 print(requestAuthentification[1])
+                self.MainWindow.resize(889, 589)
                 self.frameAuthentification.hide()
                 self.frameConversation.show()
                 try:
                     global reader, user
                     user = requestAuthentification[2]
                     print("Добро пожаловать в Tequila, {}!".format(user.login))
+                    print("geting contact list...")
+                    GetContacts(self.listViewContactList, self.contactListWiew, self.textBrowserReadMsg)()
+                    print("getting history...", PEER)
+                    GetHistory(PEER, self.textBrowserReadMsg)()
                     reader = Reader(user, self.textBrowserReadMsg)
                     reader()
                 except:
-                    print('Ощибка при плучениии сообщений')
+                    print('Ошибка при плучениии сообщений')
             else:
                 print(requestAuthentification[1])
                 self.frameAuthentification.hide()
@@ -73,7 +89,7 @@ class CheckAuthentification:
 
 class CheckRegistration:
     def __init__(self, lineEditNewLogin, lineEditNewPasswd, lineEditRepeatNewPasswd, frameEntry, frameRegistration,
-                 frameConversation, textBrowserReadMsg):
+                 frameConversation,listViewContactList, contactListWiew, textBrowserReadMsg, MainWindow):
 
         self.lineEditNewLogin = lineEditNewLogin
         self.lineEditNewPasswd = lineEditNewPasswd
@@ -81,7 +97,10 @@ class CheckRegistration:
         self.frameEntry = frameEntry
         self.frameRegistration = frameRegistration
         self.frameConversation = frameConversation
+        self.listViewContactList = listViewContactList
+        self.contactListWiew = contactListWiew
         self.textBrowserReadMsg = textBrowserReadMsg
+        self.MainWindow = MainWindow
 
 
     def __call__(self):
@@ -89,12 +108,17 @@ class CheckRegistration:
             requestRegistration = recording(self.lineEditNewLogin.text(), self.lineEditNewPasswd.text(), self.lineEditRepeatNewPasswd.text())
             if requestRegistration[0]:
                 print(requestRegistration[1])
+                self.MainWindow.resize(889, 589)
                 self.frameRegistration.hide()
                 self.frameConversation.show()
                 try:
                     global reader, user
                     user = requestRegistration[2]
                     print("Добро пожаловать в Tequila, {}!".format(user.login))
+                    print("geting contact list...")
+                    GetContacts(self.listViewContactList, self.contactListWiew, self.textBrowserReadMsg)()
+                    print("getting history...", PEER)
+                    GetHistory(PEER, self.textBrowserReadMsg)()
                     reader = Reader(user, self.textBrowserReadMsg)
                     reader()
                 except:
@@ -126,12 +150,14 @@ class Writer:
 
 
     def write_msg(self, msg):
-        print('Пытаюсь писать')
+        global PEER
+        print('writing msg...', PEER)
         myChat = Conversation()
         myChat.connection()
         #json_msg_teg = json.dumps({'action': 'msg', 'mode': 'w'}).encode('utf-8')
         #myChat.writemsg(json_msg_teg)
-        addressee = 'dron'
+        #addressee = '1'
+        addressee = PEER
         myChat.connection()
         msg = JimMessage(user.tokin, addressee, msg)
         data = msg.jsonmsg()
@@ -143,10 +169,9 @@ class Reader(Thread):
         Thread.__init__(self)
         self.textBrowserReadMsg = textBrowserReadMsg
         self.user = user
-        self.peer_login = 'dron'
+        self.peer_login = PEER
         self.continueFlag = True
-        #self.myChat = Conversation('194.67.222.96', 7777)
-        self.myChat = Conversation('localhost', 7777)
+        self.myChat = Conversation()
 
 
     def __call__(self):
@@ -154,21 +179,12 @@ class Reader(Thread):
             self.start()
 
         except:
-            print('Что-то сломалось при попытке прочесть сообщение')
+            print('Не удалось получить сообщение')
 
 
     def run(self):
-        '''self.continueFlag = True
-        self.myChat.connection()
-        #json_msg_teg = json.dumps({'action': 'msg', 'mode': 'r'}).encode('utf-8')
-        #self.myChat.writemsg(json_msg_teg)
-        while self.continueFlag:
-            self.myChat.readmsg()
-            msg = self.myChat.chat[-1]
-            self.textBrowserReadMsg.append('{} \n{:>80} \n{:>80}\n'.format(msg['message'], msg['from'], msg['time']))
-            print('{} \n{:>80} \n{:>80}\n'.format(msg['message'], msg['from'], msg['time']))
-            '''
-        print('listening for updates...')
+
+        print('listening for updates...', PEER)
         request = {
             'action': 'updates',
             'tokin': self.user.tokin,
@@ -187,17 +203,48 @@ class Reader(Thread):
                     print(msg)
                     if len(response) == 0:
                         break
-                    #self.textBrowserReadMsg.append(str(msg))
                     self.textBrowserReadMsg.append('{} \n{:>150} \n{:>150}\n'.format(msg['message'], msg['from'], msg['time']))
-                    #print('response:', response.decode('utf-8'))
         else:
-            print('Некоректный ответ')
+            print('Не удалось получить сообщение')
 
 
     def stop(self):
         self.continueFlag = False
         print('Конец сессии.')
         self.join()
+
+
+class GetContacts:
+    def __init__(self, listViewContactList, contactListWiew, textBrowserReadMsg):
+        self.listViewContactList = listViewContactList
+        self.contactListWiew = contactListWiew
+        self.textBrowserReadMsg = textBrowserReadMsg
+
+
+    def __call__(self):
+        try:
+            global user
+            self.contanctList = get_contact_list(user)
+            if self.contanctList[0]:
+                try:
+                    user = self.contanctList[2]
+                    self.contactListWiew = QStandardItemModel(self.listViewContactList)
+                    for contact in user.contactList:
+                        item = QStandardItem(contact[0])
+                        self.contactListWiew.appendRow(item)
+                        self.listViewContactList.setModel(self.contactListWiew)
+                        #self.contactListWiew().selectionChanged.connect(change_peer)
+                        #self.contactListWiew.selectionChanged.connect(change_peer)
+                        contactListWiew().selectionChanged.connect(change_peer)
+
+                    #self.textBrowserReadMsg.append(str(user.contactList))
+                except:
+                    print('Ошибка при выводе контактов')
+            else:
+                print(self.contanctList[1])
+        except:
+            print('Ошибка при выводе списка контактов')
+
 
 
 class Authentification:
@@ -223,17 +270,69 @@ class Registration:
 
 
 class Logout:
-    def __init__(self, frameConversation, textBrowserReadMsg, frameEntry):
+    def __init__(self, frameConversation, textBrowserReadMsg, frameEntry, MainWindow):
         self.frameConversation = frameConversation
         self.textBrowserReadMsg = textBrowserReadMsg
         self.frameEntry = frameEntry
+        self.MainWindow = MainWindow
 
 
     def __call__(self):
         self.textBrowserReadMsg.clear()
         reader.stop()
+        self.MainWindow.resize(290, 589)
         self.frameConversation.hide()
         self.frameEntry.show()
+
+
+class AddContact:
+    def __init__(self, plainTextEditNewContact, listViewContactList, contactListWiew, textBrowserReadMsg):
+        self.plainTextEditNewContact = plainTextEditNewContact
+        self.listViewContactList = listViewContactList
+        self.contactListWiew = contactListWiew
+        self.textBrowserReadMsg = textBrowserReadMsg
+
+    def __call__(self):
+        try:
+            global user
+            add_contact(user, self.plainTextEditNewContact.toPlainText())
+            self.plainTextEditNewContact.clear()
+            GetContacts(self.listViewContactList, self.contactListWiew, self.textBrowserReadMsg)()
+        except:
+            print('Ошибка при добавлении контактов')
+
+
+class GetHistory:
+    def __init__(self, peer, textBrowserReadMsg):
+        self.textBrowserReadMsg = textBrowserReadMsg
+        self.peer = peer
+
+
+    def __call__(self):
+        try:
+            global user
+            self.messeges = get_history(user, self.peer)
+            if self.messeges[0]:
+                try:
+
+                    user = self.messeges[2]
+                    for msg in user.history:
+                        #print(msg)
+                        #self.textBrowserReadMsg.append('{} \n{:>150} \n{:>150}\n'.format(msg['message'], str(msg['from']), msg['time']))
+                        self.textBrowserReadMsg.append(str(msg))
+                except:
+                    print('Ошибка при выводе истории')
+            else:
+                print(self.messeges[1])
+        except:
+            print('Ошибка при получении истории')
+
+
+def change_peer(s1):
+    print("!!!!!!!!!!!")
+    print(s1.indexes()[0].data())
+    global PEER
+    PEER = s1.indexes()[0].data()
 
 
 if __name__ == '__main__':

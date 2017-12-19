@@ -95,9 +95,7 @@ class UserServer:
         }
         try:
             data = self.client.recv(1024)
-            print("Я тут")
             self.request = json.loads(data.decode('utf-8'))
-            print(self.request)
             action = self.request['action']
             print('action:', action)
             response = self.responsers[action]()
@@ -111,8 +109,9 @@ class UserServer:
             print('Error 400. Wrong JSON-object. 2')
         except UnicodeDecodeError:
             print('\'utf-8\' codec can\'t decode byte 0xc3 in position 7: invalid continuation byte')
-        except KeyError:
-            print('Key error in request')
+        #except KeyError:
+        #    print('Key error in request')
+        #except Exception as e:
         #except Exception as e:
             #print('Unknown exception during serving a client: {}'.format(e))
         self.send_response(error_response)
@@ -142,7 +141,10 @@ class UserServer:
             contact = db.get_user(self.request['contact'])
             if not user or not contact:
                 print('add_contact: no such users')
-                return None
+                return {
+                'response': 402,
+                "error": "no such users"
+            }
             user_id = user.id
             contact_id = contact.id
             db.add_contact(user_id, contact_id)

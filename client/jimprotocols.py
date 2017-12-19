@@ -142,7 +142,7 @@ class JimHistory:
         '''
         Функция, которая составляет JSON сообщение
         '''
-        self.request = {
+        self.response = {
             'action': 'history',
             'tokin': self.tokin,
             'to': self.peer
@@ -172,9 +172,9 @@ class JimAddContact:
         '''
         Функция, которая составляет JSON сообщение
         '''
-        self.request = {
+        self.response = {
             'action': 'add_contact',
-            'user': self.tokin,
+            'tokin': self.tokin,
             'contact': self.contactLogin
         }
 
@@ -200,7 +200,7 @@ class JimGetContact:
         '''
         Функция, которая составляет JSON сообщение
         '''
-        self.request = {
+        self.response = {
             'action': 'get_contacts',
             'tokin': self.tokin,
         }

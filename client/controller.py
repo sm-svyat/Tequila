@@ -12,10 +12,19 @@ class Client:
     def __init__(self, login, password):
         self.login = login
         self.password = password
-        self.tokin = str()
+
 
     def change_tokin(self, tokin):
         self.tokin = tokin
+
+
+    def add_contact_list(self, contact_list):
+        self.contactList = contact_list
+
+
+    def add_history(self, history):
+        self.history = history
+
 
     def __repr__(self):
         return self.login
@@ -65,6 +74,46 @@ def log_in(login, password):
         return (False, 'В форме заполнены не все поля')
 
 
+def get_contact_list(user):
+    try:
+        response = get_contacts(user.tokin)
+        try:
+            user.add_contact_list(response['contacts'])
+            return (True, 'Получен список контактов', user)
+        except:
+            print('Некоректный ответ сервера')
+        return (True, 'Получен список контактов', response)
+    except ConnectionRefusedError:
+        return (False, 'Сервер не отвечает')
+
+
+def add_contact(user, peer):
+    try:
+        response = addcontact(user.tokin, peer)
+        if response['response'] // 100 == 4:
+            print(response['error'])
+    except ConnectionRefusedError:
+        print('Сервер не отвечает')
+    except:
+        print('Неизвестная ошибка')
+
+
+def get_history(user, peer):
+    try:
+        response = gethistory(user.tokin, peer)
+        if response['response'] // 100 == 4:
+            print(response['error'])
+        else:
+            user.add_history(response['messages'])
+            return (True, 'Получена история сообщений', user)
+    except ConnectionRefusedError:
+        return (False, 'Сервер не отвечает')
+    except json.decoder.JSONDecodeError:
+        return (False, 'Слишком большая история сообщений')
+    except:
+        return (False, 'Неизвестная ошибка')
+
+
 def write_msg(self, tokin, peer, msg):
     myChat = Conversation()
     myChat.connection()
@@ -108,6 +157,35 @@ def registration(login, password):
     return json_data
 
 
+def get_contacts(tokin):
+    '''
+    Функция получения контактов
+    :param tokin:
+    :return:
+    '''
+    msg = JimGetContact(tokin)
+    request = msg.jsonmsg()
+    data = connection(request)
+    json_data = json.loads(data.decode('utf-8'))
+    return json_data
+
+
+def addcontact(tokin, peer):
+    msg = JimAddContact(tokin, peer)
+    request = msg.jsonmsg()
+    data = connection(request)
+    json_data = json.loads(data.decode('utf-8'))
+    return json_data
+
+
+def gethistory(tokin, peer):
+    msg = JimHistory(tokin, peer)
+    request = msg.jsonmsg()
+    data = connection(request)
+    json_data = json.loads(data.decode('utf-8'))
+    return json_data
+
+
 def connection(json_object, host=HOST, port=PORT):
     '''
     Функция соединения с сервером
@@ -144,6 +222,21 @@ class Conversation:
     def writemsg(self, json_object):
         self.chat.append(json_object)
         self.sock.send(json_object)
+
+
+class SocketEx:
+    def __init__(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect(('127.0.0.1', 7777))
+
+    def send(self, request):
+        self.sock.send(json.dumps(request).encode('utf-8'))
+
+    def recv(self):
+        return self.sock.recv(1024)
+
+    def close(self):
+        self.sock.close()
 
 
 if __name__ == '__main__':
