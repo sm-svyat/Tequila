@@ -1,27 +1,28 @@
 import sys
 import json
-from PyQt5 import QtWidgets
-from PyQt5.QtGui import QStandardItem, QStandardItemModel
+from PyQt5 import QtWidgets, Qt
+from PyQt5.QtGui import QStandardItem, QStandardItemModel, QIcon
 from threading import Thread
 import ui_client
 from controller import recording, log_in, Conversation,JimMessage, get_contact_list, add_contact, get_history, SocketEx
-#from client import SocketEx
 import select
+import ast
+import time
 
 reader = None
 user = object()
-PEER = 'Max'
+
 
 class InitialUi_MainWindow(ui_client.Ui_MainWindow):
     def setupUi(self, MainWindow):
         ui_client.Ui_MainWindow.setupUi(self, MainWindow)
         self.MainWindow = MainWindow
+        self.MainWindow.setWindowTitle('Tequila')
+        self.MainWindow.setWindowIcon(QIcon('icons/Tequila.png'))
         self.MainWindow.resize(290, 589)
         self.frameRegistration.hide()
         self.frameAuthentification.hide()
         self.frameConversation.hide()
-        global contactListWiew
-        QStandardItemModel(self.listViewContactList)
         self.contactListWiew = QStandardItemModel(self.listViewContactList)
 
 
@@ -37,11 +38,11 @@ class TkillaWindow(QtWidgets.QMainWindow):
         self.ui.pushButtonSendMsg.clicked.connect(Writer(self.ui.plainTextEditWriteMsg))
         self.ui.pushButtonLogout.clicked.connect(Logout(self.ui.frameConversation, self.ui.textBrowserReadMsg, self.ui.frameEntry, self.ui.MainWindow))
         self.ui.pushButtonAddContact.clicked.connect(AddContact(self.ui.plainTextEditNewContact, self.ui.listViewContactList,self.ui.contactListWiew, self.ui.textBrowserReadMsg))
-        #self.ui.contactListWiew().selectionChanged.connect(change_peer)
 
 
     def closeEvent(self, event):
         reader.stop()
+        print('Конец сессии.')
         event.accept()
 
 
@@ -65,18 +66,17 @@ class CheckAuthentification:
                 self.MainWindow.resize(889, 589)
                 self.frameAuthentification.hide()
                 self.frameConversation.show()
-                try:
-                    global reader, user
-                    user = requestAuthentification[2]
-                    print("Добро пожаловать в Tequila, {}!".format(user.login))
-                    print("geting contact list...")
-                    GetContacts(self.listViewContactList, self.contactListWiew, self.textBrowserReadMsg)()
-                    print("getting history...", PEER)
-                    GetHistory(PEER, self.textBrowserReadMsg)()
-                    reader = Reader(user, self.textBrowserReadMsg)
-                    reader()
-                except:
-                    print('Ошибка при плучениии сообщений')
+
+                global reader, user, PEER
+                user = requestAuthentification[2]
+                print("Добро пожаловать в Tequila, {}!".format(user.login))
+                print("geting contact list...")
+                PEER = user.login
+                GetContacts(self.listViewContactList, self.contactListWiew, self.textBrowserReadMsg)()
+                print("getting history...", PEER)
+                reader = Reader(user, self.textBrowserReadMsg)
+                reader()
+
             else:
                 print(requestAuthentification[1])
                 self.frameAuthentification.hide()
@@ -111,18 +111,18 @@ class CheckRegistration:
                 self.MainWindow.resize(889, 589)
                 self.frameRegistration.hide()
                 self.frameConversation.show()
-                try:
-                    global reader, user
-                    user = requestRegistration[2]
-                    print("Добро пожаловать в Tequila, {}!".format(user.login))
-                    print("geting contact list...")
-                    GetContacts(self.listViewContactList, self.contactListWiew, self.textBrowserReadMsg)()
-                    print("getting history...", PEER)
-                    GetHistory(PEER, self.textBrowserReadMsg)()
-                    reader = Reader(user, self.textBrowserReadMsg)
-                    reader()
-                except:
-                    print('Ошибка при плучениии сообщений')
+
+                global reader, user, PEER
+                user = requestRegistration[2]
+                print("Добро пожаловать в Tequila, {}!".format(user.login))
+                AddContact(user, self.listViewContactList, self.contactListWiew, self.textBrowserReadMsg)()
+
+                print("geting contact list...")
+                PEER = user.login
+                GetContacts(self.listViewContactList, self.contactListWiew, self.textBrowserReadMsg)()
+                print("getting history...", PEER)
+                reader = Reader(user, self.textBrowserReadMsg)
+                reader()
 
             else:
                 print(requestRegistration[1])
@@ -154,9 +154,6 @@ class Writer:
         print('writing msg...', PEER)
         myChat = Conversation()
         myChat.connection()
-        #json_msg_teg = json.dumps({'action': 'msg', 'mode': 'w'}).encode('utf-8')
-        #myChat.writemsg(json_msg_teg)
-        #addressee = '1'
         addressee = PEER
         myChat.connection()
         msg = JimMessage(user.tokin, addressee, msg)
@@ -175,20 +172,22 @@ class Reader(Thread):
 
 
     def __call__(self):
-        try:
-            self.start()
+        self.start()
+        #try:
+        #    self.start()
 
-        except:
-            print('Не удалось получить сообщение')
+        #except:
+        #    print('Не удалось получить сообщение&&')
 
 
     def run(self):
-
+        global PEER
+        GetHistory(PEER, self.textBrowserReadMsg)()
         print('listening for updates...', PEER)
         request = {
             'action': 'updates',
             'tokin': self.user.tokin,
-            'peer': self.peer_login
+            'peer': PEER
         }
         sock = SocketEx()
         sock.send(request)
@@ -200,18 +199,21 @@ class Reader(Thread):
                 if r:
                     response = sock.recv()
                     msg = json.loads(response.decode('utf-8'))
-                    print(msg)
                     if len(response) == 0:
                         break
-                    self.textBrowserReadMsg.append('{} \n{:>150} \n{:>150}\n'.format(msg['message'], msg['from'], msg['time']))
+                    self.textBrowserReadMsg.append('{} \n{:>165} \n{:>155}\n'.format(msg['message'], msg['from'], msg['time']))
         else:
             print('Не удалось получить сообщение')
 
 
     def stop(self):
         self.continueFlag = False
-        print('Конец сессии.')
         self.join()
+
+
+
+    def restart(self):
+        self.run()
 
 
 class GetContacts:
@@ -223,28 +225,24 @@ class GetContacts:
 
     def __call__(self):
         try:
-            global user
+            global user, PEER
             self.contanctList = get_contact_list(user)
             if self.contanctList[0]:
-                try:
-                    user = self.contanctList[2]
-                    self.contactListWiew = QStandardItemModel(self.listViewContactList)
-                    for contact in user.contactList:
-                        item = QStandardItem(contact[0])
-                        self.contactListWiew.appendRow(item)
-                        self.listViewContactList.setModel(self.contactListWiew)
-                        #self.contactListWiew().selectionChanged.connect(change_peer)
-                        #self.contactListWiew.selectionChanged.connect(change_peer)
-                        contactListWiew().selectionChanged.connect(change_peer)
+                user = self.contanctList[2]
+                self.contactListWiew.clear()
+                for contact in user.contactList:
+                    item = QStandardItem(contact[0])
+                    self.contactListWiew.appendRow(item)
+                self.listViewContactList.setModel(self.contactListWiew)
 
-                    #self.textBrowserReadMsg.append(str(user.contactList))
+                try:
+                    self.listViewContactList.selectionModel().selectionChanged.connect(ChangePeer(self.textBrowserReadMsg))
                 except:
-                    print('Ошибка при выводе контактов')
+                    print('Ошибка при при выборе пира')
             else:
                 print(self.contanctList[1])
         except:
             print('Ошибка при выводе списка контактов')
-
 
 
 class Authentification:
@@ -280,6 +278,7 @@ class Logout:
     def __call__(self):
         self.textBrowserReadMsg.clear()
         reader.stop()
+        print('Конец сессии.')
         self.MainWindow.resize(290, 589)
         self.frameConversation.hide()
         self.frameEntry.show()
@@ -310,16 +309,16 @@ class GetHistory:
 
     def __call__(self):
         try:
-            global user
-            self.messeges = get_history(user, self.peer)
+            global user, PEER
+            self.messeges = get_history(user, PEER)
             if self.messeges[0]:
                 try:
 
                     user = self.messeges[2]
                     for msg in user.history:
-                        #print(msg)
-                        #self.textBrowserReadMsg.append('{} \n{:>150} \n{:>150}\n'.format(msg['message'], str(msg['from']), msg['time']))
-                        self.textBrowserReadMsg.append(str(msg))
+                        msg = ast.literal_eval(msg)
+                        self.textBrowserReadMsg.append('{} \n{:>165} \n{:>155}\n'.format(msg['message'], str(msg['from']), msg['time']))
+                    self.textBrowserReadMsg.append('_'*33+time.ctime()+'_'*33+'\n')
                 except:
                     print('Ошибка при выводе истории')
             else:
@@ -328,11 +327,19 @@ class GetHistory:
             print('Ошибка при получении истории')
 
 
-def change_peer(s1):
-    print("!!!!!!!!!!!")
-    print(s1.indexes()[0].data())
-    global PEER
-    PEER = s1.indexes()[0].data()
+class ChangePeer:
+    def __init__(self, textBrowserReadMsg):
+        self.textBrowserReadMsg = textBrowserReadMsg
+
+
+    def __call__(self, *args, **kwargs):
+        global reader, PEER
+        print('changing peer...')
+        PEER = args[0].indexes()[0].data()
+        reader.stop()
+        self.textBrowserReadMsg.clear()
+        reader = Reader(user, self.textBrowserReadMsg)
+        reader()
 
 
 if __name__ == '__main__':

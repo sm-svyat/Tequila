@@ -1,5 +1,6 @@
 import json
 import socket
+import copy
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -27,12 +28,17 @@ class DB:
         self.session.add(user)
 
     def get_messages(self, user1, user2):
-        messages = self.session.query(Message).filter_by(from_id=user1, to_id=user2)
-        for message in messages:
-            yield message
-        messages = self.session.query(Message).filter_by(from_id=user2, to_id=user1)
-        for message in messages:
-            yield message
+        if user1 != user2:
+            messages = self.session.query(Message).filter_by(from_id=user1, to_id=user2)
+            for message in messages:
+                yield message
+            messages = self.session.query(Message).filter_by(from_id=user2, to_id=user1)
+            for message in messages:
+                yield message
+        else:
+            messages = self.session.query(Message).filter_by(from_id=user1, to_id=user2)
+            for message in messages:
+                yield message
 
     def add_message(self, from_id, to_id, time, message):
         message = Message(from_id, to_id, time, message)
@@ -195,13 +201,15 @@ class UserServer:
             return None
         messages = []
         for message in db.get_messages(from_user.id, to_user.id):
-            messages.append((message.id, message))
+            message = copy.deepcopy(message)
+            message.from_id = db.get_user_nickname(message.from_id)
+            messages.append((message.id, str(message)))
         messages.sort(key=lambda x: x[0])
         response = {
             'response': 200,
             'messages': []
         }
-        for message in messages:
+        for message in messages[-5:]:
             response['messages'].append(str(message[1]))
         return response
 
@@ -306,8 +314,6 @@ class MainServer:
 
     def connect(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # Avoid 'adress already in use' error
-        # https://stackoverflow.com/a/6380198
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
         self.sock.listen(15)
@@ -391,7 +397,7 @@ class Chat:
                 message = json.dumps(message)
                 resp = message.encode('utf-8')
                 sock.send(resp)
-            except (BrokenPipeError, ConnectionResetError):
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 print('Удаленный хост принудительно разорвал существующее подключение')
 
                 #    print('Какие-то проблемы при записи сообщений отправленных в чат')

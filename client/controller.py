@@ -5,8 +5,8 @@ import time
 from jimprotocols import JimMessage, JimAuthentication, JimRegistration, JimHistory, JimAddContact, JimGetContact
 
 HOST = 'localhost'
+#HOST = '194.67.222.96'
 PORT = 7777
-#host='194.67.222.96', port=7777
 
 class Client:
     def __init__(self, login, password):
@@ -30,6 +30,9 @@ class Client:
         return self.login
 
 
+    def toPlainText(self):
+        return self.login
+
 def recording(login, password, second_passwd):
     if login and password and password:
         if password == second_passwd:
@@ -39,7 +42,6 @@ def recording(login, password, second_passwd):
                 response = registration(login, password)
                 if 'tokin' in response.keys():
                     user.change_tokin(response['tokin'])
-                    print(response)
                     return (True, 'Регистрация прошла успешно.', user)
                 elif 'error' in response.keys():
                     print(response['error'])
@@ -227,7 +229,7 @@ class Conversation:
 class SocketEx:
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect(('127.0.0.1', 7777))
+        self.sock.connect((HOST, 7777))
 
     def send(self, request):
         self.sock.send(json.dumps(request).encode('utf-8'))
