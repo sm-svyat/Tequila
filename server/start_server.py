@@ -235,13 +235,13 @@ class UserServer:
         login = self.request['user']['account_name']
         db_user = db.get_user(login)
         if not db_user:
-            print("Ошибка 402, \"Wrong password or no account with that name\"")
+            print("Error 402, \"Wrong password or no account with that name\"")
             return {
                 "response": 402,
                 "error": "No account with that name"
             }
         if self.request['user']['password'] == db_user.password:
-            print("Пользователь с ником {} прошел аунтентификацию {}"
+            print("A user with the nickname {} was authenticate {}"
                     .format(self.request['user']['account_name'], self.request['time']))
         else:
             print("Ошибка 402, \"Wrong password\"")
@@ -286,7 +286,7 @@ class UserServer:
         login = self.request['user']['account_name']
         user = db.get_user(login)
         if user:
-            print('Попытка зарегестрировать существующий login - {}'.format(login))
+            print('Attempt to register an existing login - {}'.format(login))
             return {
                 "response": 402,
                 "error": "The user with this login already exists"
@@ -295,14 +295,14 @@ class UserServer:
             user = User(login, self.request['user']['password'])
             db.add_user(user)
             db.commit()
-            print("Пользователь с ником %s прошел регистрацию %s" % (login, self.request['time']))
+            print("User with nickname %s has registered %s" % (login, self.request['time']))
             return {
                 "response": 200,
                 "alert": "Registration is successful",
                 "tokin": user.tokin
             }
         except:
-            print('Что-то пошло не так при регистрации, глянь что там')
+            print('User registration failed')
             return None
 
 
@@ -384,7 +384,7 @@ class Chat:
 
     def write_requests(self, request):
         """
-        Отправка сообщений тем клиентам, которые их ждут
+        Sending messages to those customers who are waiting for them
         """
         for target_user, target_peer, sock in self.reading_clients:
             message = request
@@ -398,15 +398,13 @@ class Chat:
                 resp = message.encode('utf-8')
                 sock.send(resp)
             except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
-                print('Удаленный хост принудительно разорвал существующее подключение')
+                print('The host forcibly broke the existing connection')
 
-                #    print('Какие-то проблемы при записи сообщений отправленных в чат')
-                    # Реализовать отключение клиента
 
 if __name__ == '__main__':
 
     engine = create_engine('sqlite:///database/tkilla_database.db', echo=False)
-    pool_recycle = 7200  # переустановление соединения с бд через каждые 2 часа
+    pool_recycle = 7200  # re-connection to the database every 2 hours
 
     Session = sessionmaker(bind=engine)
     session = Session()
