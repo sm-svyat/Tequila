@@ -5,7 +5,6 @@ import time
 from jimprotocols import JimMessage, JimAuthentication, JimRegistration, JimHistory, JimAddContact, JimGetContact
 
 HOST = 'localhost'
-#HOST = '194.67.222.96'
 PORT = 7777
 
 class Client:
